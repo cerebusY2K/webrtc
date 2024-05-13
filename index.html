@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebRTC One-on-One Video Call</title>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<h2>WebRTC One-on-One Video Call</h2>
+<video id="localVideo" autoplay muted></video>
+<video id="remoteVideo" autoplay></video>
+
+<script>
+  const socket = io();
+  const localVideo = document.getElementById('localVideo');
+  const remoteVideo = document.getElementById('remoteVideo');
+  const peerConnection = new RTCPeerConnection();
+
+  // Display local stream
+  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+      localVideo.srcObject = stream;
+      stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+    });
+
+  // Handle remote stream
+  peerConnection.ontrack = event => {
+    remoteVideo.srcObject = event.streams[0];
+  };
+
+  // Send any ice candidates to the other peer
+  peerConnection.onicecandidate = event => {
+    if (event.candidate) {
+      socket.emit('candidate', event.candidate);
+    }
+  };
+
+  // Listen for remote ICE candidates
+  socket.on('candidate', candidate => {
+    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  });
+
+  // Listen for offers
+  socket.on('offer', offer => {
+    peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    peerConnection.createAnswer().then(answer => {
+      peerConnection.setLocalDescription(answer);
+      socket.emit('answer', answer);
+    });
+  });
+
+  // Listen for answers
+  socket.on('answer', answer => {
+    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  });
+
+  // Create offer
+  function createOffer() {
+    peerConnection.createOffer().then(offer => {
+      peerConnection.setLocalDescription(offer);
+      socket.emit('offer', offer);
+    });
+  }
+</script>
+<button onclick="createOffer()">Call</button>
+</body>
+</html>
