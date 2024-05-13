@@ -12,6 +12,16 @@
 
 <script>
   const socket = io();
+  const peerConnectionConfig = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' }, // Google's public STUN server
+      {
+            url: "turn:18.134.127.127:3478",
+            credential: "amx123",
+            username: "amxdev",
+     },
+    ]
+  };
   const localVideo = document.getElementById('localVideo');
   const remoteVideo = document.getElementById('remoteVideo');
   const peerConnection = new RTCPeerConnection();
