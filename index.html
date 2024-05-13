@@ -40,14 +40,38 @@
 
   // Send any ice candidates to the other peer
   peerConnection.onicecandidate = event => {
-    if (event.candidate) {
-      socket.emit('candidate', event.candidate);
-    }
+        if (event.candidate) {
+        console.log('New ICE candidate:', event.candidate);
+        socket.emit('candidate', event.candidate);
+        } else {
+            // No more candidates will be sent
+            console.log('ICE gathering state complete');
+        }
   };
+
+  peerConnection.oniceconnectionstatechange = () => {
+  console.log('ICE Connection State Change:', peerConnection.iceConnectionState);
+  if (peerConnection.iceConnectionState === 'failed') {
+    console.error('ICE Connection has failed.');
+  }
+};
+
+peerConnection.onsignalingstatechange = () => {
+  console.log('Signaling State Change:', peerConnection.signalingState);
+};
+
+peerConnection.onconnectionstatechange = () => {
+  console.log('Connection State Change:', peerConnection.connectionState);
+  if (peerConnection.connectionState === 'failed') {
+    console.error('Peer Connection has failed.');
+  }
+};
 
   // Listen for remote ICE candidates
   socket.on('candidate', candidate => {
-    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+    .then(() => console.log('Successfully added ICE candidate.'))
+    .catch(error => console.error('Error adding ICE candidate:', error));
   });
 
   // Listen for offers
