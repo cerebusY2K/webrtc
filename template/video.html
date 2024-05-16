@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>WebRTC One-on-One Video Call</title>
+<title>WebRTC One-on-One Video Call with Chat</title>
 <style>
   body {
     display: flex;
@@ -15,11 +15,17 @@
     margin: 0;
   }
 
+  #mainContainer {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+  }
+
   #videosContainer {
     display: flex;
     justify-content: space-around;
-    width: 100%;
-    max-width: 900px;
+    width: 70%;
   }
 
   #localVideoContainer, #remoteVideoContainer {
@@ -41,19 +47,71 @@
     padding: 2px 10px;
     border-radius: 5px;
   }
+
+  #chatContainer {
+    width: 30%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #ddd;
+    padding: 10px;
+  }
+
+  #messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: white;
+  }
+
+  #chatForm {
+    display: flex;
+  }
+
+  #chatInput {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+
+  #chatButton {
+    padding: 10px;
+    border: none;
+    background-color: #4285F4;
+    color: white;
+    cursor: pointer;
+    margin-left: 5px;
+    border-radius: 5px;
+  }
+
+  #chatButton:hover {
+    background-color: #357ae8;
+  }
 </style>
 <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-<h2>WebRTC One-on-One Video Call</h2>
-<div id="videosContainer">
-  <div id="localVideoContainer">
-    <video id="localVideo" autoplay muted></video>
-    <div id="nameTag">You</div>
+<h2>WebRTC One-on-One Video Call with Chat</h2>
+<div id="mainContainer">
+  <div id="videosContainer">
+    <div id="localVideoContainer">
+      <video id="localVideo" autoplay muted></video>
+      <div id="nameTag">You</div>
+    </div>
+    <div id="remoteVideoContainer">
+      <video id="remoteVideo" autoplay></video>
+      <div id="remoteNameTag">Remote</div>
+    </div>
   </div>
-  <div id="remoteVideoContainer">
-    <video id="remoteVideo" autoplay></video>
-    <div id="remoteNameTag">Remote</div>
+  <div id="chatContainer">
+    <div id="messages"></div>
+    <form id="chatForm">
+      <input id="chatInput" type="text" placeholder="Type a message..." autocomplete="off" disabled>
+      <button id="chatButton" type="submit" disabled>Send</button>
+    </form>
   </div>
 </div>
 
@@ -63,6 +121,14 @@
     document.getElementById('nameTag').textContent += ': ' + userName;
 
     const socket = io();
+    const room = prompt("Enter room ID:");
+    socket.emit('join room', room);
+
+    socket.on('room full', () => {
+      alert("Room is full. Please try another room.");
+      window.location.href = '/';
+    });
+
     const peerConnectionConfig = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" }
@@ -70,6 +136,8 @@
     };
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
+    const chatInput = document.getElementById('chatInput');
+    const chatButton = document.getElementById('chatButton');
     const peerConnection = new RTCPeerConnection(peerConnectionConfig);
 
     // Display local stream
@@ -83,6 +151,8 @@
     // Handle remote stream
     peerConnection.ontrack = event => {
       remoteVideo.srcObject = event.streams[0];
+      chatInput.disabled = false;
+      chatButton.disabled = false;
     };
 
     // Send any ice candidates to the other peer
@@ -144,6 +214,25 @@
         socket.emit('answer', { answer, name: userName });
       });
     }
+
+    // Chat functionality
+    const chatForm = document.getElementById('chatForm');
+    const messages = document.getElementById('messages');
+
+    chatForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (chatInput.value) {
+        socket.emit('chat message', { user: userName, message: chatInput.value });
+        chatInput.value = '';
+      }
+    });
+
+    socket.on('chat message', function(msg) {
+      const item = document.createElement('div');
+      item.textContent = `${msg.user}: ${msg.message}`;
+      messages.appendChild(item);
+      messages.scrollTop = messages.scrollHeight;
+    });
   });
 </script>
 </body>
