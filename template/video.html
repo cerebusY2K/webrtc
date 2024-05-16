@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebRTC One-on-One Video Call</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+  }
+
+  #videosContainer {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  #localVideoContainer, #remoteVideoContainer {
+    position: relative;
+    width: 45%;
+  }
+
+  video {
+    width: 100%;
+    border: 1px solid black;
+  }
+
+  #nameTag, #remoteNameTag {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 10px;
+    border-radius: 5px;
+  }
+</style>
+<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+<h2>WebRTC One-on-One Video Call</h2>
+<div id="videosContainer">
+  <div id="localVideoContainer">
+    <video id="localVideo" autoplay muted></video>
+    <div id="nameTag">You</div>
+  </div>
+  <div id="remoteVideoContainer">
+    <video id="remoteVideo" autoplay></video>
+    <div id="remoteNameTag">Remote</div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const userName = sessionStorage.getItem('userName') || 'Unknown User';
+    document.getElementById('nameTag').textContent += ': ' + userName;
+
+    const socket = io();
+    const peerConnectionConfig = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    };
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const peerConnection = new RTCPeerConnection(peerConnectionConfig);
+
+    // Display local stream
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        localVideo.srcObject = stream;
+        stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+        createOffer();  // Automatically create offer after getting user media
+      });
+
+    // Handle remote stream
+    peerConnection.ontrack = event => {
+      remoteVideo.srcObject = event.streams[0];
+    };
+
+    // Send any ice candidates to the other peer
+    peerConnection.onicecandidate = event => {
+      if (event.candidate) {
+        console.log('New ICE candidate:', event.candidate);
+        socket.emit('candidate', event.candidate);
+      } else {
+        console.log('ICE gathering state complete');
+      }
+    };
+
+    peerConnection.oniceconnectionstatechange = () => {
+      console.log('ICE Connection State Change:', peerConnection.iceConnectionState);
+    };
+
+    peerConnection.onsignalingstatechange = () => {
+      console.log('Signaling State Change:', peerConnection.signalingState);
+    };
+
+    peerConnection.onconnectionstatechange = () => {
+      console.log('Connection State Change:', peerConnection.connectionState);
+    };
+
+    // Listen for remote ICE candidates
+    socket.on('candidate', candidate => {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+        .then(() => console.log('Successfully added ICE candidate.'))
+        .catch(error => console.error('Error adding ICE candidate:', error));
+    });
+
+    // Listen for offers
+    socket.on('offer', data => {
+      const { offer, name } = data;
+      document.getElementById('remoteNameTag').textContent = 'Remote: ' + name;
+      peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      createAnswer(name);
+    });
+
+    // Listen for answers
+    socket.on('answer', data => {
+      const { answer, name } = data;
+      document.getElementById('remoteNameTag').textContent = 'Remote: ' + name;
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    // Create and send an offer
+    function createOffer() {
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer);
+        socket.emit('offer', { offer, name: userName });
+      });
+    }
+
+    // Create and send an answer
+    function createAnswer(remoteName) {
+      peerConnection.createAnswer().then(answer => {
+        peerConnection.setLocalDescription(answer);
+        socket.emit('answer', { answer, name: userName });
+      });
+    }
+  });
+</script>
+</body>
+</html>

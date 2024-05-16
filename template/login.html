@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+        font-family: Arial, sans-serif;
+        margin: 0;
+    }
+
+    .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 300px;
+        padding: 40px 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background: white;
+        border-radius: 12px;
+    }
+
+    .login-container img {
+        width: 100px;
+        margin-bottom: 20px;
+    }
+
+    .login-container h2 {
+        margin-bottom: 20px;
+        text-align: center;
+        color: #333;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        color: white;
+        background-color: #4285F4;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        outline: none;
+        transition: background-color 0.3s;
+    }
+
+    button:hover {
+        background-color: #357ae8;
+    }
+</style>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBHGY-tOAE8Jf2bh2h5R3p1IiiY77c9dMU",
+        authDomain: "webrtc-32540.firebaseapp.com",
+        projectId: "webrtc-32540",
+        storageBucket: "webrtc-32540.appspot.com",
+        messagingSenderId: "838829777769",
+        appId: "1:838829777769:web:77a3b81430dfb9f60c13f8",
+        measurementId: "G-LVBQSC07HM"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+
+    window.signInWithGoogle = function() {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log(result);
+            const token = result.user.accessToken;
+            const user = result.user;
+            sessionStorage.setItem('userName', result.user.displayName);
+            console.log(user);
+            window.location.href = 'video.html';  // Ensure this URL matches your video page
+        }).catch((error) => {
+            console.error("Authentication failed:", error.message);
+        });
+    }
+</script>
+</head>
+<body>
+    <div class="login-container">
+        <img src="static/logo.png" alt="Logo">  <!-- Ensure you have a logo.png file in the same directory or update the path -->
+        <h2>Login to Access Video Call</h2>
+        <button onclick="signInWithGoogle()">Sign in with Google</button>
+    </div>
+</body>
+</html>
