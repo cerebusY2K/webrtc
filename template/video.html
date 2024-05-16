@@ -222,17 +222,23 @@
     chatForm.addEventListener('submit', function(e) {
       e.preventDefault();
       if (chatInput.value) {
-        socket.emit('chat message', { user: userName, message: chatInput.value });
+        const msg = { user: userName, message: chatInput.value };
+        socket.emit('chat message', msg);
+        displayMessage(msg);
         chatInput.value = '';
       }
     });
 
     socket.on('chat message', function(msg) {
+      displayMessage(msg);
+    });
+
+    function displayMessage(msg) {
       const item = document.createElement('div');
       item.textContent = `${msg.user}: ${msg.message}`;
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
-    });
+    }
   });
 </script>
 </body>
