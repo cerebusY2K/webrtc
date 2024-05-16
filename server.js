@@ -8,19 +8,19 @@ const io = socketIo(server);
 var path = require('path')
 
 
+// Serve static files from the "public" directory
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
-var root = path.join(__dirname,'/template');
-app.use(express.static(root));
-
+// Serve HTML files from the "template" directory
+app.use(express.static(path.join(__dirname, 'template')));
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/template/login.html');
+  res.sendFile(path.join(__dirname, 'template', 'login.html'));
 });
 
 app.get('/video', (req, res) => {
-    res.sendFile(__dirname + '/video.html');
-  });
+  res.sendFile(path.join(__dirname, 'template', 'video.html'));
+});
 
 io.on('connection', (socket) => {
   console.log('A user connected');
