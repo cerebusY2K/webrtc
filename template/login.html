@@ -46,15 +46,25 @@
         cursor: pointer;
         outline: none;
         transition: background-color 0.3s;
+        width: 100%;
+        margin-bottom: 10px;
     }
 
     button:hover {
         background-color: #357ae8;
     }
+
+    .microsoft-button {
+        background-color: #2F2F2F;
+    }
+
+    .microsoft-button:hover {
+        background-color: #1F1F1F;
+    }
 </style>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
     // Firebase configuration
@@ -73,16 +83,30 @@
     const analytics = getAnalytics(app);
     const auth = getAuth(app);
 
+    // Google Sign In
     window.signInWithGoogle = function() {
         const provider = new GoogleAuthProvider();
         signInWithPopup(auth, provider)
         .then((result) => {
-            console.log(result);
-            const token = result.user.accessToken;
             const user = result.user;
             sessionStorage.setItem('userName', result.user.displayName);
-            console.log(user);
-            window.location.href = 'video.html';  // Ensure this URL matches your video page
+            window.location.href = 'video.html';
+        }).catch((error) => {
+            console.error("Authentication failed:", error.message);
+        });
+    }
+
+    // Microsoft Sign In
+    window.signInWithMicrosoft = function() {
+        const provider = new OAuthProvider('microsoft.com');
+        provider.setCustomParameters({
+        prompt: "consent"
+        });
+        signInWithPopup(auth, provider)
+        .then((result) => {
+            const user = result.user;
+            sessionStorage.setItem('userName', result.user.displayName);
+            window.location.href = 'video.html';
         }).catch((error) => {
             console.error("Authentication failed:", error.message);
         });
@@ -91,9 +115,10 @@
 </head>
 <body>
     <div class="login-container">
-        <img src="static/logo.png" alt="Logo">  <!-- Ensure you have a logo.png file in the same directory or update the path -->
+        <img src="static/logo.png" alt="Logo">
         <h2>Login to Access Video Call</h2>
         <button onclick="signInWithGoogle()">Sign in with Google</button>
+        <button class="microsoft-button" onclick="signInWithMicrosoft()">Sign in with Microsoft</button>
     </div>
 </body>
 </html>
